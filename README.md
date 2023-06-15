@@ -33,6 +33,12 @@
 ## 🧐 About <a name = "about"></a>
 
 VAE-like approaches to Parkinson diagnoses based on speech data.
+
+## TO-DO list:
+
+- [ ] Add RASTA-PLP preprocessing 
+- [ ] Test baselines with RASTA-PLP
+- [ ] Add a VAE baseline
     
 ## 🏁 Getting Started <a name = "getting_started"></a>
 
