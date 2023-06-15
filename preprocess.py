@@ -47,10 +47,10 @@ def read_data(path_to_data, hyperparams, wandb=False):
     # ============== Downsampling ===========
 
     # Downsample the signals to 16kHz using the resample function
-    data["signal"] = data["signal"].apply(
-        lambda x: signal.resample(x, int(x.shape[0] * 16000 / data["sr"][0]))
-    )
-    data["sr"] = 16000
+    # data["signal"] = data["signal"].apply(
+    #     lambda x: signal.resample(x, int(x.shape[0] * 16000 / data["sr"][0]))
+    # )
+    # data["sr"] = 16000
 
     # Plot in wandb a random signal
     random_signal = np.random.randint(0, len(data))

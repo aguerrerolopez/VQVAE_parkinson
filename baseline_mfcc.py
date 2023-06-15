@@ -16,7 +16,7 @@ hyperparams = {
     "frame_size_ms": 15,
     "hop_size_percent": 50,
     "n_mfcc": 12,
-    "wandb_flag": False,
+    "wandb_flag": True,
 }
 
 
@@ -49,7 +49,7 @@ for f in folds:
         wandb.init(
             project="parkinson",
             entity="alexjorguer",
-            group="Baseline LR signal",
+            group="Baseline RF MFCC 15ms 50percent 12mfccs",
             name="Fold " + str(f),
             config=hyperparams,
         )
@@ -77,12 +77,43 @@ for f in folds:
     # binarize the labels
     y_test = np.where(y_test == "PD", 1, 0)
 
-    cl = RandomForestClassifier(
-        n_estimators=100, max_depth=2, random_state=0, class_weight=weights
+    # Cross-validate a RF model
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.utils.class_weight import compute_sample_weight
+
+    # DEfine the param grid of a RFC
+    param_grid = {
+        "n_estimators": [100],
+        "max_depth": [5, 10, 15],
+        "min_samples_split": [2, 5, 10],
+        "min_samples_leaf": [1, 2, 5],
+        "max_features": ["sqrt", "log2"],
+        "class_weight": ["balanced", "balanced_subsample"],
+    }
+
+    # Define the model
+    clf = RandomForestClassifier(random_state=42)
+    # Define the grid search
+    grid_search = GridSearchCV(
+        estimator=clf,
+        param_grid=param_grid,
+        cv=5,
+        n_jobs=-1,
+        verbose=2,
     )
-    cl.fit(X_train, y_train)
-    cl.score(X_train, y_train)
-    cl.score(X_test, y_test)
+    # Fit the grid search
+    grid_search.fit(X_train, y_train)
+
+    # Get the best model
+    best_clf = grid_search.best_estimator_
+    # Get the best parameters
+    best_params = grid_search.best_params_
+
+    eval_performance(best_clf, X_train, y_train, wandb=False)
+
+    # Eval performance in testing
+    eval_performance(best_clf, X_test, y_test, wandb=True)
 
     # Plot summary
     if wandb_flag:
