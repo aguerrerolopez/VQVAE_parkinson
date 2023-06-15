@@ -12,13 +12,15 @@ from sklearn.ensemble import RandomForestClassifier
 with open("config_real.yaml", "r") as stream:
     config = yaml.safe_load(stream)
 
+
+# ================== Hyperparameters ================== TODO: Change this for argparse
 hyperparams = {
     "frame_size_ms": 15,
     "hop_size_percent": 50,
     "n_mfcc": 12,
     "wandb_flag": True,
 }
-
+wandb_flag = hyperparams["wandb_flag"]
 
 mpath = config["main"]["path_to_data"]
 
@@ -39,6 +41,10 @@ data_framed["mfcc"] = data_framed.apply(
     ),
     axis=1,
 )
+
+# Store only mfcc and label in a new dataframe and save it as a pickle
+data_framed = data_framed[["mfcc", "label", "fold"]]
+data_framed.to_pickle("data/data_framed_15_ms_12_mfcc.pkl")
 
 
 # ============== Splitting ===========
@@ -86,10 +92,7 @@ for f in folds:
     param_grid = {
         "n_estimators": [100],
         "max_depth": [5, 10, 15],
-        "min_samples_split": [2, 5, 10],
-        "min_samples_leaf": [1, 2, 5],
-        "max_features": ["sqrt", "log2"],
-        "class_weight": ["balanced", "balanced_subsample"],
+        "class_weight": ["balanced"],
     }
 
     # Define the model
