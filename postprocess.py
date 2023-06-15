@@ -15,7 +15,7 @@ from wandb.sklearn import (
 import wandb
 
 
-def eval_performance(model, x, y, wandb=False):
+def eval_performance(model, x, y, wandb_flag=False):
     # Compute the accuracy of the model
     accuracy = model.score(x, y)
     print("Accuracy: ", accuracy)
@@ -38,6 +38,18 @@ def eval_performance(model, x, y, wandb=False):
     fpr, tpr, _ = roc_curve(y, y_pred_proba)
     roc_auc = auc(fpr, tpr)
     print("ROC AUC: ", roc_auc)
+
+    if wandb_flag:
+        # Log the metrics
+        wandb.log(
+            {
+                "test/accuracy": accuracy,
+                "test/precision": precision,
+                "test/recall": recall,
+                "test/roc_auc": roc_auc,
+            }
+        )
+
     # Plot ROC curve
     plt.figure()
     lw = 2
@@ -53,7 +65,7 @@ def eval_performance(model, x, y, wandb=False):
     plt.legend(loc="lower right")
     plt.show()
 
-    if wandb:
+    if wandb_flag:
         # Compute the confusion matrix
         # Binarize y
         plot_confusion_matrix(y, y_pred, ["HC", "PD"])

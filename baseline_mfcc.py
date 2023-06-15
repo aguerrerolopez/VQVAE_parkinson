@@ -4,6 +4,7 @@ import numpy as np
 from preprocess import read_data
 from postprocess import eval_performance
 from preprocess import extract_mfcc_with_derivatives
+import pandas as pd
 
 # Import random forest
 from sklearn.ensemble import RandomForestClassifier
@@ -20,6 +21,7 @@ hyperparams = {
     "n_mfcc": 12,
     "wandb_flag": True,
 }
+new_preprocessing = False
 wandb_flag = hyperparams["wandb_flag"]
 
 mpath = config["main"]["path_to_data"]
@@ -30,25 +32,32 @@ path_to_data = mpath + "/" + problem + "/"
 
 
 print("Reading data...")
+
 # Read and preprocess the data
-data, data_framed = read_data(path_to_data, hyperparams, wandb=False)
+data = read_data(path_to_data, hyperparams, wandb=False)
 
 print("Extracting MFCCs...")
 # Compute the MFCCs. Apply to each frame the mfcc function with receives as input the frame, the sampling rate
-data_framed["mfcc"] = data_framed.apply(
+data["mfccs_with_derivatives"] = data.apply(
     lambda x: extract_mfcc_with_derivatives(
-        x["framed_signal"], x["sr"], hyperparams["n_mfcc"]
+        x["norm_signal"],
+        x["sr"],
+        hyperparams["frame_size_ms"],
+        hyperparams["n_mfcc"],
     ),
     axis=1,
 )
 
-# Store only mfcc and label in a new dataframe and save it as a pickle
-data_framed = data_framed[["mfcc", "label", "fold"]]
-data_framed.to_pickle("data/data_framed_15_ms_12_mfcc.pkl")
-
+# TODO: Preguntar: es necesario separar por frames? o se puede hacer directamente com heatmaps?
+# Transpose data["mfccs_with_derivatives"] to have a list of lists of mfccs
+data["mfccs_with_derivatives"] = data["mfccs_with_derivatives"].apply(
+    lambda x: np.transpose(x)
+)
+# Explode
+data = data.explode("mfccs_with_derivatives")
 
 # ============== Splitting ===========
-folds = np.unique(data_framed["fold"])
+folds = np.unique(data["fold"])
 for f in folds:
     if wandb_flag:
         # Initialize wandb
@@ -60,8 +69,8 @@ for f in folds:
             config=hyperparams,
         )
     # Select randomly one fold for testing and the rest for training
-    train = data_framed[data_framed["fold"] != f]
-    test = data_framed[data_framed["fold"] == f]
+    train = data[data["fold"] != f]
+    test = data[data["fold"] == f]
 
     # Check the balance in trianing sets and store the weights of each class to compensate training
     weights = train["label"].value_counts(normalize=True)
@@ -73,12 +82,12 @@ for f in folds:
         + ["mfcc_delta2_" + str(i) for i in range(1, 13)]
     )
 
-    X_train = np.stack(train["mfcc"])
+    X_train = np.vstack(train["mfccs_with_derivatives"])
     y_train = train["label"]
     # binarize the labels
     y_train = np.where(y_train == "PD", 1, 0)
 
-    X_test = np.stack(test["mfcc"])
+    X_test = np.vstack(test["mfccs_with_derivatives"])
     y_test = test["label"]
     # binarize the labels
     y_test = np.where(y_test == "PD", 1, 0)
@@ -113,10 +122,10 @@ for f in folds:
     # Get the best parameters
     best_params = grid_search.best_params_
 
-    eval_performance(best_clf, X_train, y_train, wandb=False)
+    eval_performance(best_clf, X_train, y_train, wandb_flag=False)
 
     # Eval performance in testing
-    eval_performance(best_clf, X_test, y_test, wandb=True)
+    eval_performance(best_clf, X_test, y_test, wandb_flag=True)
 
     # Plot summary
     if wandb_flag:

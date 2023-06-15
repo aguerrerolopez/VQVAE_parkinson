@@ -88,35 +88,7 @@ def read_data(path_to_data, hyperparams, wandb=False):
             }
         )
 
-    # Frame the signals applying the frame_audio function with receives as input the signal, the frame size, the hop size and the sampling rate
-    data["framed_signal"] = data.apply(
-        lambda x: frame_audio(
-            x["norm_signal"],
-            hyperparams["frame_size_ms"],
-            hyperparams["hop_size_percent"],
-            x["sr"],
-        ),
-        axis=1,
-    )
-
-    # Plot in wandb a random chunk of a signal
-    if wandb:
-        random_frame = np.random.randint(0, len(data["framed_signal"][random_signal]))
-        wandb.log(
-            {
-                "framed_signal": wandb.Audio(
-                    data["framed_signal"][random_signal][random_frame],
-                    sample_rate=data["sr"][random_signal],
-                    caption="Random framed signal" + data["label"][random_signal],
-                )
-            }
-        )
-
-    # Each row of the dataframe contains a signal. Each signal is framed into several frames. Each frame is a row in the dataframe that has to contain the label of the signal.
-    # We have to duplicate the rows to have one row per frame. We can use the pandas function explode to do this.
-    data_framed = data.explode("framed_signal")
-
-    return data, data_framed
+    return data
 
 
 # Normalize the signals
@@ -175,26 +147,37 @@ def cmn(mfcc):
     return cmn_mfcc
 
 
-def extract_mfcc_with_derivatives(frame, sample_rate, n_mfcc=10):
+def extract_mfcc_with_derivatives(audio, sample_rate, frame_length_ms, n_mfcc=10):
     # Antisimetric filter
-    frame = antisymmetric_fir_filter(frame)
-    # Compute MFCC coefficients
+    af = antisymmetric_fir_filter(audio)
+
+    frame_length = int(sample_rate * frame_length_ms * 1e-3)  # Convert ms to samples
+    hop_length = int(frame_length / 2)  # 50% overlap
+    frames = librosa.util.frame(af, frame_length=frame_length, hop_length=hop_length)
+    # Apply hanning windows
+    frames = frames * np.hanning(frame_length)[:, None]
 
     # N_fft is the next number in power of 2 of the frame size
-    n_fft = 2 ** (int(np.log2(frame.shape[0])) + 1)
+    n_fft = 2 ** (int(np.log2(frames.shape[1])) + 1)
+    # Compute MFCC for each frame
+    mfccs = []
+    for frame in frames:
+        mfcc = librosa.feature.mfcc(y=frame, sr=sample_rate, n_mfcc=n_mfcc, n_fft=n_fft)
+        mfccs.append(mfcc)
 
-    mfcc_coeffs = librosa.feature.mfcc(
-        y=frame, sr=sample_rate, n_mfcc=n_mfcc, n_fft=n_fft
-    )
-    # Compute cepstral mean substraction
-    mfcc_coeffs = cmn(mfcc_coeffs).flatten()
+    mfccs = np.hstack(mfccs)
 
-    # Compute delta coefficients
-    mfcc_delta = librosa.feature.delta(mfcc_coeffs)
-    # Compute delta-delta coefficients
-    mfcc_delta2 = librosa.feature.delta(mfcc_coeffs, order=2)
+    # Normalize the MFCCs
+    mfccs = cmn(mfccs)
 
-    # Concatenate the three coefficients
-    mfcc_features = np.concatenate((mfcc_coeffs, mfcc_delta, mfcc_delta2), axis=0)
+    # Compute derivatives
+    mfccs_delta = librosa.feature.delta(mfccs)
+    mfccs_delta2 = librosa.feature.delta(mfccs, order=2)
+
+    # Concatenate the features
+    mfcc_features = np.concatenate((mfccs, mfccs_delta, mfccs_delta2))
 
     return mfcc_features
+
+
+
