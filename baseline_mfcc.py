@@ -27,6 +27,7 @@ mpath = config["main"]["path_to_data"]
 
 problem = "PATAKA"
 
+
 path_to_data = mpath + "/" + problem + "/"
 
 
