@@ -44,6 +44,14 @@ def read_data(path_to_data, hyperparams, wandb=False):
     # Read the .wav files and store the signals and sampling rates
     data["sr"], data["signal"] = zip(*data["file_path"].map(wavfile.read))
 
+    # ============== Downsampling ===========
+
+    # Downsample the signals to 16kHz using the resample function
+    data["signal"] = data["signal"].apply(
+        lambda x: signal.resample(x, int(x.shape[0] * 16000 / data["sr"][0]))
+    )
+    data["sr"] = 16000
+
     # Plot in wandb a random signal
     random_signal = np.random.randint(0, len(data))
     if wandb:
@@ -154,23 +162,32 @@ def antisymmetric_fir_filter(f):
     return filtered_signal
 
 
-def cms(mfcc):
+def cmn(mfcc):
     # Compute the mean of each feature
     mean = np.mean(mfcc, axis=0)
 
-    # Apply CMN
-    cmn_mfcc = mfcc - mean
+    # Compute the variance of each feature
+    var = np.var(mfcc, axis=0)
+
+    # Noramlize
+    cmn_mfcc = (mfcc - mean) / np.sqrt(var)
 
     return cmn_mfcc
 
 
-def extract_mfcc_with_derivatives(frame, sample_rate):
+def extract_mfcc_with_derivatives(frame, sample_rate, n_mfcc=10):
     # Antisimetric filter
     frame = antisymmetric_fir_filter(frame)
     # Compute MFCC coefficients
-    mfcc_coeffs = librosa.feature.mfcc(y=frame, sr=sample_rate, n_mfcc=10)
+
+    # N_fft is the next number in power of 2 of the frame size
+    n_fft = 2 ** (int(np.log2(frame.shape[0])) + 1)
+
+    mfcc_coeffs = librosa.feature.mfcc(
+        y=frame, sr=sample_rate, n_mfcc=n_mfcc, n_fft=n_fft
+    )
     # Compute cepstral mean substraction
-    mfcc_coeffs = cms(mfcc_coeffs)
+    mfcc_coeffs = cmn(mfcc_coeffs).flatten()
 
     # Compute delta coefficients
     mfcc_delta = librosa.feature.delta(mfcc_coeffs)
