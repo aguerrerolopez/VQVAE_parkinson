@@ -36,7 +36,7 @@ VAE-like approaches to Parkinson diagnoses based on speech data.
 
 ## TO-DO list:
 
-- [ ] Add RASTA-PLP preprocessing 
+- [ ] Add RASTA-PLP preprocessing (try this [repo](https://spafe.readthedocs.io/en/latest/features/rplp.html))
 - [ ] Test baselines with RASTA-PLP
 - [ ] Add a VAE baseline
     
