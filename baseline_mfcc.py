@@ -21,7 +21,6 @@ hyperparams = {
     "n_mfcc": 12,
     "wandb_flag": True,
 }
-new_preprocessing = False
 wandb_flag = hyperparams["wandb_flag"]
 
 mpath = config["main"]["path_to_data"]
@@ -64,7 +63,8 @@ for f in folds:
         wandb.init(
             project="parkinson",
             entity="alexjorguer",
-            group="Baseline RF MFCC 15ms 50percent 12mfccs",
+            # The name of the group is the combinatno of hyperparameters
+            group="Baseline RF MFCCS" + str(hyperparams),
             name="Fold " + str(f),
             config=hyperparams,
         )
