@@ -62,12 +62,11 @@ plt.figure()
 librosa.display.specshow(
     data["plps_with_derivatives"][0].T, sr=data["sr"][0], x_axis="time"
 )
+plt.title("PLPs with derivatives")
 plt.colorbar()
-plt.title("PLP spectrogram")
 plt.tight_layout()
-if wandb_flag:
-    wandb.log({"PLP spectrogram": plt})
-plt.show()
+plt.savefig("./results/plps_with_derivatives.png")
+
 
 # Explode
 data = data.explode("plps_with_derivatives")
