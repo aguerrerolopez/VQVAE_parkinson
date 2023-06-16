@@ -7,6 +7,12 @@ import numpy as np
 import wandb
 import librosa
 
+# Add rasta_py to the path
+import sys
+
+sys.path.append("./rasta_py")
+from rasta import rastaplp
+
 
 def read_data(path_to_data, hyperparams, wandb=False):
     # List all the folders in the path_to_data directory
@@ -122,8 +128,13 @@ def frame_audio(audio_data, frame_size_ms, hop_size_percent, sample_rate):
     return framed_data
 
 
-def antisymmetric_fir_filter(f):
+def antisymmetric_fir_filter(f, num_coeffs=9):
+    # Define the antisymmetric filter coefficients
     coefficients = np.array([0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8, 0.9])
+    if num_coeffs > len(coefficients):
+        raise ValueError("Number of coefficients exceeds the available coefficients.")
+
+    coefficients = coefficients[:num_coeffs]
     # Reverse the coefficients and negate the odd-indexed elements
     antisymmetric_coeffs = np.flipud(coefficients)
     antisymmetric_coeffs[1::2] *= -1
@@ -145,6 +156,30 @@ def cmn(mfcc):
     cmn_mfcc = (mfcc - mean) / np.sqrt(var)
 
     return cmn_mfcc
+
+
+def extract_rasta_plp_with_derivatives(audio, sample_rate, frame_length_ms, n_plps=10):
+    # Antisimetric filter
+    af = antisymmetric_fir_filter(audio)
+
+    # Compute the PLPs
+    plps = rastaplp(
+        af,
+        fs=sample_rate,
+        win_time=frame_length_ms * 1e-3,
+        hop_time=int(frame_length_ms / 2) * 1e-3,
+        modelorder=n_plps,
+    )
+
+    # Compute the derivatives
+    plps_d1 = librosa.feature.delta(plps, order=1)
+    plps_d2 = librosa.feature.delta(plps, order=2)
+
+    # Concatenate the features
+    plps = np.concatenate((plps, plps_d1, plps_d2), axis=0)
+
+    # TODO: Preguntar: es necesario separar por frames? o se puede hacer directamente com heatmaps?
+    return plps.T
 
 
 def extract_mfcc_with_derivatives(audio, sample_rate, frame_length_ms, n_mfcc=10):
@@ -177,7 +212,5 @@ def extract_mfcc_with_derivatives(audio, sample_rate, frame_length_ms, n_mfcc=10
     # Concatenate the features
     mfcc_features = np.concatenate((mfccs, mfccs_delta, mfccs_delta2))
 
-    return mfcc_features
-
-
-
+    # TODO: Preguntar: es necesario separar por frames? o se puede hacer directamente com heatmaps?
+    return mfcc_features.T

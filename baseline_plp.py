@@ -3,7 +3,7 @@ import yaml
 import numpy as np
 from preprocess import read_data
 from postprocess import eval_performance
-from preprocess import extract_mfcc_with_derivatives
+from preprocess import extract_rasta_plp_with_derivatives
 import pandas as pd
 
 # Import random forest
@@ -18,7 +18,7 @@ with open("config_real.yaml", "r") as stream:
 hyperparams = {
     "frame_size_ms": 15,
     "hop_size_percent": 50,
-    "n_mfcc": 12,
+    "n_plps": 12,
     "wandb_flag": True,
 }
 wandb_flag = hyperparams["wandb_flag"]
@@ -36,25 +36,22 @@ print("Reading data...")
 # Read and preprocess the data
 data = read_data(path_to_data, hyperparams, wandb=False)
 
-print("Extracting MFCCs...")
-# Compute the MFCCs. Apply to each frame the mfcc function with receives as input the frame, the sampling rate
-data["mfccs_with_derivatives"] = data.apply(
-    lambda x: extract_mfcc_with_derivatives(
+print("Extracting PLPS...")
+# Compute the PLPS. Apply to each frame the plp function with receives as input the frame, the sampling rate
+data["plps_with_derivatives"] = data.apply(
+    lambda x: extract_rasta_plp_with_derivatives(
         x["norm_signal"],
         x["sr"],
         hyperparams["frame_size_ms"],
-        hyperparams["n_mfcc"],
+        hyperparams["n_plps"],
     ),
     axis=1,
 )
 
-# TODO: Preguntar: es necesario separar por frames? o se puede hacer directamente com heatmaps?
-# Transpose data["mfccs_with_derivatives"] to have a list of lists of mfccs
-data["mfccs_with_derivatives"] = data["mfccs_with_derivatives"].apply(
-    lambda x: np.transpose(x)
-)
+
+
 # Explode
-data = data.explode("mfccs_with_derivatives")
+data = data.explode("plps_with_derivatives")
 
 # ============== Splitting ===========
 folds = np.unique(data["fold"])
@@ -65,7 +62,7 @@ for f in folds:
             project="parkinson",
             entity="alexjorguer",
             # The name of the group is the combinatno of hyperparameters
-            group="Baseline RF MFCCS" + str(hyperparams),
+            group="Baseline RF plpS" + str(hyperparams),
             name="Fold " + str(f),
             config=hyperparams,
         )
@@ -76,19 +73,19 @@ for f in folds:
     # Check the balance in trianing sets and store the weights of each class to compensate training
     weights = train["label"].value_counts(normalize=True)
 
-    # Define a columns vector with columns name: the first 12 are the mfcc_coeffs and the rest are the mfcc_deltas1 adn deltas2
+    # Define a columns vector with columns name: the first 12 are the plp_coeffs and the rest are the plp_deltas1 adn deltas2
     columns = (
-        ["plps_" + str(i) for i in range(1, 13)]
-        + ["plps_delta" + str(i) for i in range(1, 13)]
-        + ["plps_delta2_" + str(i) for i in range(1, 13)]
+        ["plp_" + str(i) for i in range(1, 13)]
+        + ["plp_delta_" + str(i) for i in range(1, 13)]
+        + ["plp_delta2_" + str(i) for i in range(1, 13)]
     )
 
-    X_train = np.vstack(train["mfccs_with_derivatives"])
+    X_train = np.vstack(train["plps_with_derivatives"])
     y_train = train["label"]
     # binarize the labels
     y_train = np.where(y_train == "PD", 1, 0)
 
-    X_test = np.vstack(test["mfccs_with_derivatives"])
+    X_test = np.vstack(test["plps_with_derivatives"])
     y_test = test["label"]
     # binarize the labels
     y_test = np.where(y_test == "PD", 1, 0)

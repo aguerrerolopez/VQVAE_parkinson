@@ -74,4 +74,4 @@ In the future, Docker will be used to facilitate the installation of the project
 
 ## 🎉 Acknowledgements <a name = "acknowledgement"></a>
 
-- Hat tip to anyone whose code was used
+- Thanks to @mystlee for his [implementation](https://github.com/mystlee/rasta_py/tree/master) of RASTA-PLP
