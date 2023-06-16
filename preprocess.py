@@ -6,12 +6,26 @@ import scipy.signal as signal
 import numpy as np
 import wandb
 import librosa
+import seaborn as sns
 
 # Add rasta_py to the path
 import sys
 
 sys.path.append("./rasta_py")
 from rasta import rastaplp
+
+
+def analyse_distribution(data):
+    # For all folds, plot a sns.distplot of the plps_with_derivatives. For each fold, plot a different color
+    folds = np.unique(data["fold"])
+    fig, ax = plt.subplots()
+    for f in folds:
+        data_fold = data[data["fold"] == f]["plps_with_derivatives"].mean(axis=0)
+        sns.histplot(data_fold, label="Fold " + str(f), ax=ax)
+    plt.title("Distribution of the plps_with_derivatives")
+    plt.legend()
+    plt.savefig("./results/plps_with_derivatives_distribution.png")
+    plt.close()
 
 
 def read_data(path_to_data, hyperparams, wandb_flag=False):
