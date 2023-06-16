@@ -4,7 +4,8 @@ import numpy as np
 from preprocess import read_data
 from postprocess import eval_performance
 from preprocess import extract_mfcc_with_derivatives
-import pandas as pd
+import librosa
+import matplotlib.pyplot as plt
 
 # Import random forest
 from sklearn.ensemble import RandomForestClassifier
@@ -48,11 +49,17 @@ data["mfccs_with_derivatives"] = data.apply(
     axis=1,
 )
 
-# TODO: Preguntar: es necesario separar por frames? o se puede hacer directamente com heatmaps?
-# Transpose data["mfccs_with_derivatives"] to have a list of lists of mfccs
-data["mfccs_with_derivatives"] = data["mfccs_with_derivatives"].apply(
-    lambda x: np.transpose(x)
+# Plot a random mfccs_with_derivatives using librosa specshow
+plt.figure()
+librosa.display.specshow(
+    data["mfccs_with_derivatives"][0].T, sr=data["sr"][0], x_axis="time"
 )
+plt.title("MFCCs with derivatives")
+plt.colorbar()
+plt.tight_layout()
+plt.savefig("./results/mfccs_with_derivatives.png")
+
+
 # Explode
 data = data.explode("mfccs_with_derivatives")
 

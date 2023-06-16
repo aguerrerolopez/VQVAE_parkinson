@@ -4,7 +4,6 @@ import numpy as np
 from preprocess import read_data
 from postprocess import eval_performance
 from preprocess import extract_rasta_plp_with_derivatives
-import pandas as pd
 from matplotlib import pyplot as plt
 import librosa
 from sklearn.ensemble import RandomForestClassifier
