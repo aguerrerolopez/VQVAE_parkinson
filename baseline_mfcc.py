@@ -71,6 +71,7 @@ plt.title("MFCCs with derivatives")
 plt.colorbar()
 plt.tight_layout()
 plt.savefig("./results/mfccs_with_derivatives.png")
+plt.close()
 
 
 # Explode
@@ -108,6 +109,7 @@ for f in folds:
 
     X_train = np.vstack(train["mfccs_with_derivatives"])
     y_train = train["label"]
+
     # binarize the labels
     y_train = np.where(y_train == "PD", 1, 0)
 

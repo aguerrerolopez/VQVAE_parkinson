@@ -64,6 +64,7 @@ def eval_performance(model, x, y, wandb_flag=False):
     plt.title("Receiver operating characteristic")
     plt.legend(loc="lower right")
     plt.show()
+    plt.close()
 
     if wandb_flag:
         # Compute the confusion matrix

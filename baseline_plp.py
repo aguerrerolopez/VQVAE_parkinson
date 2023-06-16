@@ -67,6 +67,7 @@ plt.title("PLPs with derivatives")
 plt.colorbar()
 plt.tight_layout()
 plt.savefig("./results/plps_with_derivatives.png")
+plt.close()
 
 
 # Explode
