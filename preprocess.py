@@ -14,7 +14,7 @@ sys.path.append("./rasta_py")
 from rasta import rastaplp
 
 
-def read_data(path_to_data, hyperparams, wandb=False):
+def read_data(path_to_data, hyperparams, wandb_flag=False):
     # List all the folders in the path_to_data directory
     folders = os.listdir(path_to_data)
 
@@ -60,7 +60,7 @@ def read_data(path_to_data, hyperparams, wandb=False):
 
     # Plot in wandb a random signal
     random_signal = np.random.randint(0, len(data))
-    if wandb:
+    if wandb_flag:
         wandb.log(
             {
                 "signal": wandb.Audio(
@@ -83,7 +83,7 @@ def read_data(path_to_data, hyperparams, wandb=False):
     data["norm_signal"] = data.apply(lambda x: normalize_audio(x["signal"]), axis=1)
 
     # Plot in wandb a random signal
-    if wandb:
+    if wandb_flag:
         wandb.log(
             {
                 "norm_signal": wandb.Audio(

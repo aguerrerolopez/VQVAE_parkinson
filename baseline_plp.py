@@ -5,8 +5,8 @@ from preprocess import read_data
 from postprocess import eval_performance
 from preprocess import extract_rasta_plp_with_derivatives
 import pandas as pd
-
-# Import random forest
+from matplotlib import pyplot as plt
+import librosa
 from sklearn.ensemble import RandomForestClassifier
 
 # Read the configuration file
@@ -30,11 +30,20 @@ problem = "PATAKA"
 
 path_to_data = mpath + "/" + problem + "/"
 
+if wandb_flag:
+    wandb.init(
+        project="parkinson",
+        entity="alexjorguer",
+        # The name of the group is the combinatno of hyperparameters
+        group="Baseline RF plps" + str(hyperparams),
+        name="Preprocessing",
+        config=hyperparams,
+    )
 
 print("Reading data...")
 
 # Read and preprocess the data
-data = read_data(path_to_data, hyperparams, wandb=False)
+data = read_data(path_to_data, hyperparams, wandb_flag=wandb_flag)
 
 print("Extracting PLPS...")
 # Compute the PLPS. Apply to each frame the plp function with receives as input the frame, the sampling rate
@@ -48,10 +57,24 @@ data["plps_with_derivatives"] = data.apply(
     axis=1,
 )
 
-
+# Plot a random plps_with_derivatives using librosa specshow
+plt.figure()
+librosa.display.specshow(
+    data["plps_with_derivatives"][0].T, sr=data["sr"][0], x_axis="time"
+)
+plt.colorbar()
+plt.title("PLP spectrogram")
+plt.tight_layout()
+if wandb_flag:
+    wandb.log({"PLP spectrogram": plt})
+plt.show()
 
 # Explode
 data = data.explode("plps_with_derivatives")
+
+
+if wandb_flag:
+    wandb.finish()
 
 # ============== Splitting ===========
 folds = np.unique(data["fold"])
@@ -62,7 +85,7 @@ for f in folds:
             project="parkinson",
             entity="alexjorguer",
             # The name of the group is the combinatno of hyperparameters
-            group="Baseline RF plpS" + str(hyperparams),
+            group="Baseline RF plps" + str(hyperparams),
             name="Fold " + str(f),
             config=hyperparams,
         )
