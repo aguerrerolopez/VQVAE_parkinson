@@ -6,6 +6,8 @@ from postprocess import eval_performance
 from preprocess import extract_mfcc_with_derivatives
 import librosa
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
 
 # Import random forest
 from sklearn.ensemble import RandomForestClassifier
@@ -32,10 +34,21 @@ problem = "PATAKA"
 path_to_data = mpath + "/" + problem + "/"
 
 
+if wandb_flag:
+    wandb.init(
+        project="parkinson",
+        entity="alexjorguer",
+        # The name of the group is the combinatno of hyperparameters
+        group="Baseline RF MFCCs" + str(hyperparams),
+        name="Preprocessing",
+        config=hyperparams,
+    )
+
+
 print("Reading data...")
 
 # Read and preprocess the data
-data = read_data(path_to_data, hyperparams, wandb=False)
+data = read_data(path_to_data, hyperparams, wandb_flag=False)
 
 print("Extracting MFCCs...")
 # Compute the MFCCs. Apply to each frame the mfcc function with receives as input the frame, the sampling rate
@@ -62,6 +75,9 @@ plt.savefig("./results/mfccs_with_derivatives.png")
 
 # Explode
 data = data.explode("mfccs_with_derivatives")
+
+if wandb_flag:
+    wandb.finish()
 
 # ============== Splitting ===========
 folds = np.unique(data["fold"])
@@ -100,12 +116,7 @@ for f in folds:
     # binarize the labels
     y_test = np.where(y_test == "PD", 1, 0)
 
-    # Cross-validate a RF model
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.utils.class_weight import compute_sample_weight
-
-    # DEfine the param grid of a RFC
+    # Define the param grid of a RFC
     param_grid = {
         "n_estimators": [100],
         "max_depth": [5, 10, 15],

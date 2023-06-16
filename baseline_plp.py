@@ -8,6 +8,8 @@ from matplotlib import pyplot as plt
 import librosa
 from sklearn.ensemble import RandomForestClassifier
 
+from sklearn.model_selection import GridSearchCV
+
 # Read the configuration file
 with open("config_real.yaml", "r") as stream:
     config = yaml.safe_load(stream)
@@ -110,11 +112,6 @@ for f in folds:
     y_test = test["label"]
     # binarize the labels
     y_test = np.where(y_test == "PD", 1, 0)
-
-    # Cross-validate a RF model
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.utils.class_weight import compute_sample_weight
 
     # DEfine the param grid of a RFC
     param_grid = {
