@@ -149,5 +149,3 @@ for f in folds:
         wandb.sklearn.plot_summary_metrics(best_clf, X_train, y_train, X_test, y_test)
 
         wandb.finish()
-
-
